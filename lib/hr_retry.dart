@@ -155,6 +155,7 @@ class NetworkImageWithRetry extends ImageProvider<NetworkImageWithRetry> {
               );
         instructions = await fetchStrategy(instructions.uri, lastFailure);
         _debugCheckInstructions(instructions);
+        rethrow;
       }
     }
 
@@ -170,7 +171,6 @@ class NetworkImageWithRetry extends ImageProvider<NetworkImageWithRetry> {
           ErrorDescription('$runtimeType failed to load ${instructions.uri}'),
     ));
 
-    // TODO: return asset image
     return null;
   }
 

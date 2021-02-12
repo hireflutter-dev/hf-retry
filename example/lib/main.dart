@@ -18,9 +18,12 @@ class MyApp extends StatelessWidget {
       home: Scaffold(
         body: Center(
           child: Image(
-            image: NetworkImageWithRetry(
-              'https://miro.medium.com/max/1000/1*ilC2Aqp5sZd1wi0CopD1Hw.png',
-            ),
+            image: NetworkImageWithRetry('http://example.com/avatars/123.jpg'),
+            errorBuilder: (context, _, __) {
+              return FlutterLogo(
+                size: 200,
+              );
+            },
           ),
         ),
       ),
