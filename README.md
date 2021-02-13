@@ -8,7 +8,7 @@ A plugin to enhance user experience during network downtime.
 Just use `NetworkImageWithRetry` in place of `NetworkImage`
 
 ### Example
-```
+```dart
 Image(
   image: NetworkImageWithRetry('http://example.com/avatars/123.jpg'),
           errorBuilder: (context, _, __) {
