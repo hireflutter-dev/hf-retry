@@ -3,7 +3,7 @@
 /// This library expands the capabilities of the basic [Image.network] and
 /// [NetworkImage] provided by Flutter core libraries, to include a retry
 /// mechanism and connectivity detection.
-library hr_retry;
+library hf_retry;
 
 import 'dart:async';
 import 'dart:io' as io;

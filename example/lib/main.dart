@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hr_retry/hr_retry.dart';
+import 'package:hf_retry/hf_retry.dart';
 
 void main() {
   runApp(MyApp());

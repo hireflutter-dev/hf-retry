@@ -7,7 +7,7 @@ import 'dart:io' show HttpOverrides;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hr_retry/hr_retry.dart';
+import 'package:hf_retry/hf_retry.dart';
 import 'package:quiver/testing/async.dart';
 
 String _imageUrl(String fileName) {
