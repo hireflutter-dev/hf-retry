@@ -1,14 +1,20 @@
 # hr_retry
 
-A new Flutter package project.
+A plugin to enhance user experience during network downtime. 
 
-## Getting Started
+- Shows placeholder image in place of `NetworkImage` when there is no network is unawailable
+- Retries and fetches `NetworkImage` as soon as the device is connected to the internet
 
-This project is a starting point for a Dart
-[package](https://flutter.dev/developing-packages/),
-a library module containing code that can be shared easily across
-multiple Flutter or Dart projects.
+Just use `NetworkImageWithRetry` in place of `NetworkImage`
 
-For help getting started with Flutter, view our 
-[online documentation](https://flutter.dev/docs), which offers tutorials, 
-samples, guidance on mobile development, and a full API reference.
+### Example
+```dart
+Image(
+  image: NetworkImageWithRetry('http://example.com/avatars/123.jpg'),
+          errorBuilder: (context, _, __) {
+            return FlutterLogo(
+              size: 200,
+          );
+        },
+      ),
+```
