@@ -1,4 +1,4 @@
-# hr_retry
+# hf_retry
 
 A plugin to enhance user experience during network downtime. 
 
@@ -11,10 +11,10 @@ Just use `NetworkImageWithRetry` in place of `NetworkImage`
 ```dart
 Image(
   image: NetworkImageWithRetry('http://example.com/avatars/123.jpg'),
-          errorBuilder: (context, _, __) {
-            return FlutterLogo(
-              size: 200,
-        );
-      },
-    ),
+  errorBuilder: (context, _, __) {
+    return FlutterLogo(
+      size: 200,
+    );
+  },
+),
 ```
