@@ -9,16 +9,12 @@ Just use `NetworkImageWithRetry` in place of `NetworkImage`
 
 ### Example
 ```
-Scaffold(
-        body: Center(
-          child: Image(
-            image: NetworkImageWithRetry('http://example.com/avatars/123.jpg'),
-            errorBuilder: (context, _, __) {
-              return FlutterLogo(
-                size: 200,
-              );
-            },
-          ),
-        ),
+Image(
+  image: NetworkImageWithRetry('http://example.com/avatars/123.jpg'),
+          errorBuilder: (context, _, __) {
+            return FlutterLogo(
+              size: 200,
+          );
+        },
       ),
 ```
