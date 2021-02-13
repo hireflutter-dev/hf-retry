@@ -1,5 +1,5 @@
 name: hf_retry
-description: A plugin to enhance user experience during network downtime.
+description: A package to enhance user experience during network downtime.
 version: 0.0.1
 homepage: https://github.com/hireflutter-dev/hf-retry
 
