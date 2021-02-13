@@ -2,7 +2,7 @@
 
 A plugin to enhance user experience during network downtime. 
 
-- Shows placeholder image in place of `NetworkImage` when there is no network is unawailable
+- Shows placeholder image in place of `NetworkImage` when the network is unavailable
 - Retries and fetches `NetworkImage` as soon as the device is connected to the internet
 
 Just use `NetworkImageWithRetry` in place of `NetworkImage`
