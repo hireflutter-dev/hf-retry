@@ -35,10 +35,10 @@ class NetworkImageWithRetry extends ImageProvider<NetworkImageWithRetry> {
   static final io.HttpClient _client = io.HttpClient();
 
   /// The URL from which the image will be fetched.
-  final String url;
+  final String? url;
 
   /// The scale to place in the [ImageInfo] object of the image.
-  final double scale;
+  final double? scale;
 
   /// The strategy used to fetch the [url] and retry when the fetch fails.
   ///
@@ -47,7 +47,7 @@ class NetworkImageWithRetry extends ImageProvider<NetworkImageWithRetry> {
   /// indicates that this is the first attempt to fetch the [url]. Subsequent
   /// calls pass non-null [FetchFailure] values, which indicate that previous
   /// fetch attempts failed.
-  final FetchStrategy fetchStrategy;
+  final FetchStrategy? fetchStrategy;
 
   /// Used by [defaultFetchStrategy].
   ///
@@ -59,7 +59,7 @@ class NetworkImageWithRetry extends ImageProvider<NetworkImageWithRetry> {
 
   /// The [FetchStrategy] that [NetworkImageWithRetry] uses by default.
   static Future<FetchInstructions> defaultFetchStrategy(
-      Uri uri, FetchFailure failure) {
+      Uri uri, FetchFailure? failure) {
     return _defaultFetchStrategyFunction(uri, failure);
   }
 
@@ -72,12 +72,14 @@ class NetworkImageWithRetry extends ImageProvider<NetworkImageWithRetry> {
   ImageStreamCompleter load(NetworkImageWithRetry key, DecoderCallback decode) {
     return OneFrameImageStreamCompleter(_loadWithRetry(key, decode),
         informationCollector: () sync* {
+      // DiagnosticsProperty<NetworkImageWithRetry>('Image provider', this);
+      // DiagnosticsProperty<NetworkImageWithRetry>('Image key', key);
       yield ErrorDescription('Image provider: $this');
       yield ErrorDescription('Image key: $key');
     });
   }
 
-  void _debugCheckInstructions(FetchInstructions instructions) {
+  void _debugCheckInstructions(FetchInstructions? instructions) {
     assert(() {
       if (instructions == null) {
         if (fetchStrategy == defaultFetchStrategy) {
@@ -101,23 +103,23 @@ class NetworkImageWithRetry extends ImageProvider<NetworkImageWithRetry> {
     assert(key == this);
 
     final Stopwatch stopwatch = Stopwatch()..start();
-    final Uri resolved = Uri.base.resolve(key.url);
-    FetchInstructions instructions = await fetchStrategy(resolved, null);
+    final Uri resolved = Uri.base.resolve(key.url!);
+    FetchInstructions instructions = await fetchStrategy!(resolved, null);
     _debugCheckInstructions(instructions);
     int attemptCount = 0;
-    FetchFailure lastFailure;
+    FetchFailure? lastFailure;
 
     while (!instructions.shouldGiveUp) {
       attemptCount += 1;
-      io.HttpClientRequest request;
+      io.HttpClientRequest? request;
       try {
         request = await _client
             .getUrl(instructions.uri)
-            .timeout(instructions.timeout);
+            .timeout(instructions.timeout!);
         final io.HttpClientResponse response =
-            await request.close().timeout(instructions.timeout);
+            await request.close().timeout(instructions.timeout!);
 
-        if (response == null || response.statusCode != 200) {
+        if (response.statusCode != 200) {
           throw FetchFailure._(
             totalDuration: stopwatch.elapsed,
             attemptCount: attemptCount,
@@ -130,19 +132,23 @@ class NetworkImageWithRetry extends ImageProvider<NetworkImageWithRetry> {
               _Uint8ListBuilder(),
               (_Uint8ListBuilder buffer, List<int> bytes) => buffer..add(bytes),
             )
-            .timeout(instructions.timeout);
+            .timeout(instructions.timeout!);
 
         final Uint8List bytes = builder.data;
 
-        if (bytes.lengthInBytes == 0) return null;
+        if (bytes.lengthInBytes == 0)
+          throw FetchFailure._(
+            totalDuration: stopwatch.elapsed,
+            attemptCount: attemptCount,
+            httpStatusCode: response.statusCode,
+          );
 
         final ui.Codec codec = await decode(bytes);
         final ui.Image image = (await codec.getNextFrame()).image;
-        if (image == null) return null;
 
         return ImageInfo(
           image: image,
-          scale: key.scale,
+          scale: key.scale!,
         );
       } catch (error) {
         request?.close();
@@ -153,25 +159,28 @@ class NetworkImageWithRetry extends ImageProvider<NetworkImageWithRetry> {
                 attemptCount: attemptCount,
                 originalException: error,
               );
-        instructions = await fetchStrategy(instructions.uri, lastFailure);
+        instructions = await fetchStrategy!(instructions.uri, lastFailure);
         _debugCheckInstructions(instructions);
         rethrow;
       }
     }
 
     if (instructions.alternativeImage != null)
-      return instructions.alternativeImage;
+      return instructions.alternativeImage!;
 
     assert(lastFailure != null);
 
-    FlutterError.onError(FlutterErrorDetails(
-      exception: lastFailure,
-      library: 'package:flutter_image',
-      context:
-          ErrorDescription('$runtimeType failed to load ${instructions.uri}'),
-    ));
+    if (FlutterError.onError != null) {
+      FlutterError.onError!(FlutterErrorDetails(
+        exception: lastFailure!,
+        library: 'package:flutter_image',
+        context:
+            ErrorDescription('$runtimeType failed to load ${instructions.uri}'),
+      ));
+    }
 
-    return null;
+    // return null;
+    throw lastFailure!;
   }
 
   @override
@@ -207,14 +216,14 @@ class NetworkImageWithRetry extends ImageProvider<NetworkImageWithRetry> {
 ///
 /// See [NetworkImageWithRetry.defaultFetchStrategy] for an example.
 typedef FetchStrategy = Future<FetchInstructions> Function(
-    Uri uri, FetchFailure failure);
+    Uri uri, FetchFailure? failure);
 
 /// Instructions [NetworkImageWithRetry] uses to fetch the image.
 @immutable
 class FetchInstructions {
   /// Instructs [NetworkImageWithRetry] to give up trying to download the image.
   const FetchInstructions.giveUp({
-    @required this.uri,
+    required this.uri,
     this.alternativeImage,
   })  : shouldGiveUp = true,
         timeout = null;
@@ -222,9 +231,9 @@ class FetchInstructions {
   /// Instructs [NetworkImageWithRetry] to attempt to download the image from
   /// the given [uri] and [timeout] if it takes too long.
   const FetchInstructions.attempt({
-    @required this.uri,
-    @required this.timeout,
-  })  : shouldGiveUp = false,
+    required this.uri,
+    required this.timeout,
+  })   : shouldGiveUp = false,
         alternativeImage = null;
 
   /// Instructs to give up trying.
@@ -234,13 +243,13 @@ class FetchInstructions {
   final bool shouldGiveUp;
 
   /// Timeout for the next network call.
-  final Duration timeout;
+  final Duration? timeout;
 
   /// The URI to use on the next attempt.
   final Uri uri;
 
   /// Instructs to give up and use this image instead.
-  final Future<ImageInfo> alternativeImage;
+  final Future<ImageInfo>? alternativeImage;
 
   @override
   String toString() {
@@ -257,15 +266,15 @@ class FetchInstructions {
 @immutable
 class FetchFailure implements Exception {
   const FetchFailure._({
-    @required this.totalDuration,
-    @required this.attemptCount,
+    required this.totalDuration,
+    required this.attemptCount,
     this.httpStatusCode,
     this.originalException,
   })  : assert(totalDuration != null),
         assert(attemptCount > 0);
 
   /// The total amount of time it has taken so far to download the image.
-  final Duration totalDuration;
+  final Duration? totalDuration;
 
   /// The number of times [NetworkImageWithRetry] attempted to fetch the image
   /// so far.
@@ -275,7 +284,7 @@ class FetchFailure implements Exception {
   final int attemptCount;
 
   /// HTTP status code, such as 500.
-  final int httpStatusCode;
+  final int? httpStatusCode;
 
   /// The exception that caused the fetch failure.
   final dynamic originalException;
@@ -324,7 +333,7 @@ class _Uint8ListBuilder {
 }
 
 /// Determines whether the given HTTP [statusCode] is transient.
-typedef TransientHttpStatusCodePredicate = bool Function(int statusCode);
+typedef TransientHttpStatusCodePredicate = bool Function(int? statusCode);
 
 /// Builds a [FetchStrategy] function that retries up to a certain amount of
 /// times for up to a certain amount of time.
@@ -345,12 +354,7 @@ class FetchStrategyBuilder {
     this.exponentialBackoffMultiplier = 2,
     this.transientHttpStatusCodePredicate =
         defaultTransientHttpStatusCodePredicate,
-  })  : assert(timeout != null),
-        assert(totalFetchTimeout != null),
-        assert(maxAttempts != null),
-        assert(initialPauseBetweenRetries != null),
-        assert(exponentialBackoffMultiplier != null),
-        assert(transientHttpStatusCodePredicate != null);
+  });
 
   /// A list of HTTP status codes that can generally be retried.
   ///
@@ -388,14 +392,14 @@ class FetchStrategyBuilder {
 
   /// Uses [defaultTransientHttpStatusCodes] to determine if the [statusCode] is
   /// transient.
-  static bool defaultTransientHttpStatusCodePredicate(int statusCode) {
+  static bool defaultTransientHttpStatusCodePredicate(int? statusCode) {
     return defaultTransientHttpStatusCodes.contains(statusCode);
   }
 
   /// Builds a [FetchStrategy] that operates using the properties of this
   /// builder.
   FetchStrategy build() {
-    return (Uri uri, FetchFailure failure) async {
+    return (Uri uri, FetchFailure? failure) async {
       if (failure == null) {
         // First attempt. Just load.
         return FetchInstructions.attempt(
@@ -405,12 +409,12 @@ class FetchStrategyBuilder {
       }
 
       final bool isRetriableFailure =
-          transientHttpStatusCodePredicate(failure.httpStatusCode) ||
+          transientHttpStatusCodePredicate(failure.httpStatusCode ?? 404) ||
               failure.originalException is io.SocketException;
 
       // If cannot retry, give up.
       if (!isRetriableFailure || // retrying will not help
-          failure.totalDuration > totalFetchTimeout || // taking too long
+          failure.totalDuration! > totalFetchTimeout || // taking too long
           failure.attemptCount > maxAttempts) {
         // too many attempts
         return FetchInstructions.giveUp(uri: uri);

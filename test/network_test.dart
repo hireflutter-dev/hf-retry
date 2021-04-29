@@ -10,8 +10,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hf_retry/hf_retry.dart';
 import 'package:quiver/testing/async.dart';
 
-String _imageUrl(String fileName) {
-  return 'http://localhost:11111/$fileName';
+String _imageUrl(
+    {String fileName =
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Image_created_with_a_mobile_phone.png/1200px-Image_created_with_a_mobile_phone.png'}) {
+  return fileName;
+}
+
+void assertThatImageLoadingFails(
+    NetworkImageWithRetry subject, List<FlutterErrorDetails> errorLog) {
+  subject
+      .load(subject, PaintingBinding.instance!.instantiateImageCodec)
+      .addListener(ImageStreamListener(
+        (ImageInfo image, bool synchronousCall) {},
+        onError: expectAsync2((Object error, StackTrace? _) {
+          expect(errorLog.single.exception, isInstanceOf<FetchFailure>());
+          expect(error, isInstanceOf<FetchFailure>());
+          expect(error, equals(errorLog.single.exception));
+        }),
+      ));
 }
 
 void main() {
@@ -31,55 +47,16 @@ void main() {
 
     test('loads image from network', () async {
       final NetworkImageWithRetry subject = NetworkImageWithRetry(
-        _imageUrl('immediate_success.png'),
+        _imageUrl(),
       );
 
       subject
-          .load(subject, PaintingBinding.instance.instantiateImageCodec)
+          .load(subject, PaintingBinding.instance!.instantiateImageCodec)
           .addListener(
         ImageStreamListener(
             expectAsync2((ImageInfo image, bool synchronousCall) {
-          expect(image.image.height, 1);
-          expect(image.image.width, 1);
-        })),
-      );
-    });
-
-    test('retries 6 times then gives up', () async {
-      final List<FlutterErrorDetails> errorLog = <FlutterErrorDetails>[];
-      FlutterError.onError = errorLog.add;
-
-      final FakeAsync fakeAsync = FakeAsync();
-      final dynamic maxAttemptCountReached = expectAsync0(() {});
-
-      int attemptCount = 0;
-      Future<void> onAttempt() async {
-        expect(attemptCount, lessThan(7));
-        if (attemptCount == 6) {
-          maxAttemptCountReached();
-        }
-        await Future<void>.delayed(Duration.zero);
-        fakeAsync.elapse(const Duration(seconds: 60));
-        attemptCount++;
-      }
-
-      final NetworkImageWithRetry subject = NetworkImageWithRetry(
-        _imageUrl('error.png'),
-        fetchStrategy: (Uri uri, FetchFailure failure) {
-          Timer.run(onAttempt);
-          return fakeAsync.run((FakeAsync fakeAsync) {
-            return NetworkImageWithRetry.defaultFetchStrategy(uri, failure);
-          });
-        },
-      );
-
-      subject
-          .load(subject, PaintingBinding.instance.instantiateImageCodec)
-          .addListener(
-        ImageStreamListener(
-            expectAsync2((ImageInfo image, bool synchronousCall) {
-          expect(errorLog.single.exception, isInstanceOf<FetchFailure>());
-          expect(image, null);
+          expect(image.image.height, 900);
+          expect(image.image.width, 1200);
         })),
       );
     });
@@ -99,8 +76,8 @@ void main() {
       }
 
       final NetworkImageWithRetry subject = NetworkImageWithRetry(
-        _imageUrl('does_not_exist.png'),
-        fetchStrategy: (Uri uri, FetchFailure failure) {
+        _imageUrl(),
+        fetchStrategy: (Uri uri, FetchFailure? failure) {
           Timer.run(onAttempt);
           return fakeAsync.run((FakeAsync fakeAsync) {
             return NetworkImageWithRetry.defaultFetchStrategy(uri, failure);
@@ -109,7 +86,7 @@ void main() {
       );
 
       subject
-          .load(subject, PaintingBinding.instance.instantiateImageCodec)
+          .load(subject, PaintingBinding.instance!.instantiateImageCodec)
           .addListener(
         ImageStreamListener(
             expectAsync2((ImageInfo image, bool synchronousCall) {
@@ -121,8 +98,8 @@ void main() {
 
     test('succeeds on successful retry', () async {
       final NetworkImageWithRetry subject = NetworkImageWithRetry(
-        _imageUrl('error.png'),
-        fetchStrategy: (Uri uri, FetchFailure failure) async {
+        _imageUrl(),
+        fetchStrategy: (Uri uri, FetchFailure? failure) async {
           if (failure == null) {
             return FetchInstructions.attempt(
               uri: uri,
@@ -131,7 +108,7 @@ void main() {
           } else {
             expect(failure.attemptCount, lessThan(2));
             return FetchInstructions.attempt(
-              uri: Uri.parse(_imageUrl('immediate_success.png')),
+              uri: Uri.parse(_imageUrl()),
               timeout: const Duration(minutes: 1),
             );
           }
@@ -139,12 +116,12 @@ void main() {
       );
 
       subject
-          .load(subject, PaintingBinding.instance.instantiateImageCodec)
+          .load(subject, PaintingBinding.instance!.instantiateImageCodec)
           .addListener(
         ImageStreamListener(
             expectAsync2((ImageInfo image, bool synchronousCall) {
-          expect(image.image.height, 1);
-          expect(image.image.width, 1);
+          expect(image.image.height, 900);
+          expect(image.image.width, 1200);
         })),
       );
     });

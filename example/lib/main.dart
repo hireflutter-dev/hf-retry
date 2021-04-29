@@ -18,10 +18,24 @@ class MyApp extends StatelessWidget {
       home: Scaffold(
         body: Center(
           child: Image(
-            image: NetworkImageWithRetry('http://example.com/avatars/123.jpg'),
+            image: NetworkImageWithRetry(
+              'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b6/Image_created_with_a_mobile_phone.png/1200px-Image_created_with_a_mobile_phone.png',
+            ),
             errorBuilder: (context, _, __) {
               return FlutterLogo(
                 size: 200,
+              );
+            },
+            loadingBuilder: (BuildContext context, Widget child,
+                ImageChunkEvent? loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
               );
             },
           ),
